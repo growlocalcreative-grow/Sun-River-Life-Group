@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isAdmin() { return isSignedIn() && request.auth.token.email == 'growlocalcreative@gmail.com'; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Gathering Validation
+    function isValidGathering(data) {
+      return data.theme is string && data.theme.size() <= 100 &&
+             data.active is bool &&
+             data.date is string;
+    }
+
+    match /gatherings/{gatheringId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidGathering(incoming());
+    }
+
+    // Gathering Item Validation
+    function isValidGatheringItem(data) {
+      return data.name is string && data.name.size() <= 100 &&
+             data.gatheringId is string &&
+             (data.claimedByUid == null || data.claimedByUid is string) &&
+             (data.claimedByName == null || data.claimedByName is string) &&
+             (data.claimedByPhotoURL == null || data.claimedByPhotoURL is string);
+    }
+
+    match /gathering_items/{itemId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidGatheringItem(incoming());
+      allow update: if isSignedIn() && (
+        // Admin update
+        isAdmin() ||
+        // User claiming an unclaimed item
+        (existing().claimedByUid == null && incoming().claimedByUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['claimedByUid', 'claimedByName', 'claimedByPhotoURL'])) ||
+        // User unclaiming their own item
+        (existing().claimedByUid == request.auth.uid && incoming().claimedByUid == null && incoming().diff(existing()).affectedKeys().hasOnly(['claimedByUid', 'claimedByName', 'claimedByPhotoURL']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Connection testing
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Connections
+    function isValidConnection(data) {
+      return data.name is string && data.name.size() <= 100 &&
+             data.message is string && data.message.size() <= 1000 &&
+             data.createdAt is string;
+    }
+
+    match /connections/{connectionId} {
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidConnection(incoming());
+    }
+
+    match /scheduled_meetings/{meetingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /addresses/{addressId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /study_lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Lounge Message Validation
+    function isValidLoungeMessage(data) {
+      return data.text is string && data.text.size() <= 500 &&
+             data.authorName is string &&
+             data.authorPhotoURL is string &&
+             data.authorUid == request.auth.uid &&
+             data.createdAt == request.time;
+    }
+
+    match /lounge_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidLoungeMessage(incoming());
+      allow update, delete: if isAdmin();
+    }
+  }
+}

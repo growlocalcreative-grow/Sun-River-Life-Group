@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "Connection": {
+      "title": "Connection",
+      "description": "A message or feedback from a group member.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "message", "createdAt"]
+    },
+    "Address": {
+      "title": "Saved Address",
+      "description": "A common hosting location.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["name", "address"]
+    },
+    "Gathering": {
+      "title": "Gathering",
+      "description": "A scheduled meeting of the life group.",
+      "type": "object",
+      "properties": {
+        "theme": { "type": "string", "description": "The culinary or discussion theme (e.g., Taco Night)." },
+        "date": { "type": "string", "format": "date-time" },
+        "active": { "type": "boolean" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["theme", "active", "date"]
+    },
+    "GatheringItem": {
+      "title": "Gathering Item",
+      "description": "An item needed for the gathering.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "claimedByUid": { "type": "string" },
+        "claimedByName": { "type": "string" },
+        "claimedByPhotoURL": { "type": "string" },
+        "gatheringId": { "type": "string" },
+        "category": { "type": "string" },
+        "isSuggestion": { "type": "boolean" }
+      },
+      "required": ["name", "gatheringId"]
+    },
+    "AppSetting": {
+      "title": "Application Setting",
+      "description": "Global configuration for the app.",
+      "type": "object",
+      "properties": {
+        "sessionTitle": { "type": "string", "description": "The current session theme title." }
+      }
+    },
+    "Lesson": {
+      "title": "Study Lesson",
+      "description": "Weekly study guide.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "content": { "type": "string" },
+        "questions": { "type": "array", "items": { "type": "string" } },
+        "kidsCorner": { "type": "string" }
+      },
+      "required": ["title", "date", "content"]
+    },
+    "LoungeMessage": {
+      "title": "Lounge Message",
+      "description": "An encouraging message shared in the Lounge.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhotoURL": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "authorName", "authorPhotoURL", "authorUid", "createdAt"]
+    }
+  },
+  "firestore": {
+    "gatherings": {
+      "schema": "Gathering",
+      "description": "Collection of all group gatherings."
+    },
+    "gathering_items": {
+      "schema": "GatheringItem",
+      "description": "Items for specific gatherings."
+    },
+    "connections": {
+      "schema": "Connection",
+      "description": "Form submissions from members."
+    },
+    "addresses": {
+      "schema": "Address",
+      "description": "Registered host locations."
+    },
+    "scheduled_meetings": {
+      "schema": "Gathering",
+      "description": "The master schedule of upcoming meetings."
+    },
+    "study_lessons": {
+      "schema": "Lesson",
+      "description": "Weekly study materials."
+    },
+    "settings": {
+      "schema": "AppSetting",
+      "description": "Global application configuration."
+    },
+    "lounge_messages": {
+      "schema": "LoungeMessage",
+      "description": "Encouraging messages shared by group members."
+    }
+  }
+}
