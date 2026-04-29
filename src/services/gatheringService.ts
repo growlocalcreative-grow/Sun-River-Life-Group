@@ -749,6 +749,14 @@ export async function addLoungeMessage(text: string, user: AppUser) {
   }
 }
 
+export async function deleteLoungeMessage(id: string) {
+  try {
+    await deleteDoc(doc(db, 'lounge_messages', id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `lounge_messages/${id}`);
+  }
+}
+
 export function subscribeToLoungeMessages(callback: (messages: LoungeMessage[]) => void) {
   const q = query(
     collection(db, 'lounge_messages'),

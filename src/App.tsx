@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TabType, AppUser, Lesson, LoungeMessage } from './types';
-import { Home, Soup, BookOpen, Users, LogIn, LogOut, Shield, Calendar, Check, X, ArrowLeft, GraduationCap, Settings, Plus, Loader2, AlertTriangle, Trash2, MapPin, ExternalLink, Sun, Utensils, Book, Send, MessageCircle } from 'lucide-react';
+import { Home, Soup, BookOpen, Users, LogIn, LogOut, Shield, Calendar, Check, X, ArrowLeft, GraduationCap, Settings, Plus, Loader2, AlertTriangle, Trash2, MapPin, ExternalLink, Sun, Utensils, Book, Send, MessageCircle, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Gathering, 
@@ -35,6 +35,7 @@ import {
   createLesson,
   deleteLesson,
   addLoungeMessage,
+  deleteLoungeMessage,
   subscribeToLoungeMessages
 } from './services/gatheringService';
 
@@ -159,7 +160,7 @@ const LessonModal = ({ lesson, onClose }: { lesson: Lesson; onClose: () => void 
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-0 z-[60] bg-parchment overflow-y-auto"
+      className="fixed inset-0 z-[60] bg-parchment overflow-y-auto custom-scrollbar"
     >
       <div className="max-w-2xl mx-auto px-6 py-12">
         <button 
@@ -403,6 +404,8 @@ const AdminView = ({ gathering, addresses, appSettings, onShowToast, lessons }: 
   const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingAddrId, setDeletingAddrId] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<Gathering[]>([]);
@@ -599,7 +602,7 @@ const AdminView = ({ gathering, addresses, appSettings, onShowToast, lessons }: 
   return (
     <div id="admin-view" className="p-6 space-y-12">
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold">Hub Control</h1>
+        <h1 className="text-3xl font-semibold">Gathering Manager</h1>
         <p className="font-sans text-sm text-forest/60">Professional scheduling & management.</p>
       </header>
 
@@ -704,96 +707,113 @@ const AdminView = ({ gathering, addresses, appSettings, onShowToast, lessons }: 
       </div>
 
       {/* Bulk Scheduler */}
-      <div className="space-y-6">
-        <h3 className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest/40 flex items-center gap-2">
-          <Calendar size={12} /> Bulk Schedule Creator
-        </h3>
-        <div className="bg-white border border-forest/10 p-8 rounded-[2rem] shadow-sm space-y-6">
-          <AnimatePresence>
-            {showScheduleConfirm && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                <div className="bg-forest/5 border border-forest/10 p-6 rounded-2xl space-y-4 mb-4">
-                  <div className="flex items-center gap-2 text-forest">
-                    <Calendar size={16} />
-                    <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest">Schedule Preview</p>
+      <div className="space-y-4">
+        <button 
+          onClick={() => setBulkOpen(!bulkOpen)}
+          className="w-full flex items-center justify-between group"
+        >
+          <h3 className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest/40 flex items-center gap-2 group-hover:text-forest transition-colors">
+            <Calendar size={12} /> Bulk Schedule Creator
+          </h3>
+          <ChevronDown size={14} className={`text-forest/20 group-hover:text-forest transition-all ${bulkOpen ? 'rotate-180' : ''}`} />
+        </button>
+        <AnimatePresence>
+          {bulkOpen && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: 'auto', opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-white border border-forest/10 p-8 rounded-[2rem] shadow-sm space-y-6">
+                <AnimatePresence>
+                  {showScheduleConfirm && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="bg-forest/5 border border-forest/10 p-6 rounded-2xl space-y-4 mb-4">
+                        <div className="flex items-center gap-2 text-forest">
+                          <Calendar size={16} />
+                          <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest">Schedule Preview</p>
+                        </div>
+                        <p className="font-serif italic text-sm text-forest/80">
+                          This will create a series of weekly gatherings from {new Date(bulkStart).toLocaleDateString()} to {new Date(bulkEnd).toLocaleDateString()} at {bulkTime}.
+                        </p>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={handleGenerateSchedule}
+                            className="flex-1 py-2 bg-forest text-parchment rounded-lg font-sans text-[10px] font-bold uppercase tracking-widest"
+                          >
+                            Confirm Schedule
+                          </button>
+                          <button 
+                            onClick={() => setShowScheduleConfirm(false)}
+                            className="px-4 py-2 bg-white border border-forest/20 text-forest rounded-lg font-sans text-[10px] font-bold uppercase tracking-widest"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Range Start</label>
+                    <input type="date" value={bulkStart} onChange={(e) => setBulkStart(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
                   </div>
-                  <p className="font-serif italic text-sm text-forest/80">
-                    This will create a series of weekly gatherings from {new Date(bulkStart).toLocaleDateString()} to {new Date(bulkEnd).toLocaleDateString()} at {bulkTime}.
-                  </p>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleGenerateSchedule}
-                      className="flex-1 py-2 bg-forest text-parchment rounded-lg font-sans text-[10px] font-bold uppercase tracking-widest"
-                    >
-                      Confirm Schedule
-                    </button>
-                    <button 
-                      onClick={() => setShowScheduleConfirm(false)}
-                      className="px-4 py-2 bg-white border border-forest/20 text-forest rounded-lg font-sans text-[10px] font-bold uppercase tracking-widest"
-                    >
-                      Cancel
-                    </button>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Range End</label>
+                    <input type="date" value={bulkEnd} onChange={(e) => setBulkEnd(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Day of Week</label>
+                    <select value={bulkDay} onChange={(e) => setBulkDay(Number(e.target.value))} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm">
+                      <option value={0}>Sunday</option>
+                      <option value={1}>Monday</option>
+                      <option value={2}>Tuesday</option>
+                      <option value={3}>Wednesday</option>
+                      <option value={4}>Thursday</option>
+                      <option value={5}>Friday</option>
+                      <option value={6}>Saturday</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Default Time</label>
+                    <input type="time" value={bulkTime} onChange={(e) => setBulkTime(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Range Start</label>
-              <input type="date" value={bulkStart} onChange={(e) => setBulkStart(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Range End</label>
-              <input type="date" value={bulkEnd} onChange={(e) => setBulkEnd(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Day of Week</label>
-              <select value={bulkDay} onChange={(e) => setBulkDay(Number(e.target.value))} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm">
-                <option value={0}>Sunday</option>
-                <option value={1}>Monday</option>
-                <option value={2}>Tuesday</option>
-                <option value={3}>Wednesday</option>
-                <option value={4}>Thursday</option>
-                <option value={5}>Friday</option>
-                <option value={6}>Saturday</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Default Time</label>
-              <input type="time" value={bulkTime} onChange={(e) => setBulkTime(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Session Label</label>
-              <input type="text" value={bulkSession} onChange={(e) => setBulkSession(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Host</label>
-              <select 
-                value={bulkLocationName}
-                onChange={(e) => {
-                  const loc = addresses.find(l => l.name === e.target.value);
-                  setBulkLocationName(e.target.value);
-                  if (loc) setBulkLocationAddress(loc.address);
-                }}
-                className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm outline-none focus:ring-2 focus:ring-forest/20"
-              >
-                <option value="">Select Host...</option>
-                {addresses.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
-              </select>
-            </div>
-          </div>
-          <button 
-            disabled={bulkActive}
-            onClick={handleGenerateSchedule}
-            className="w-full py-3 bg-forest text-parchment rounded-xl font-sans font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all"
-          >
-            {bulkActive ? 'Generating...' : 'Generate Weekly Schedule'}
-          </button>
-        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Session Label</label>
+                    <input type="text" value={bulkSession} onChange={(e) => setBulkSession(e.target.value)} className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Host</label>
+                    <select 
+                      value={bulkLocationName}
+                      onChange={(e) => {
+                        const loc = addresses.find(l => l.name === e.target.value);
+                        setBulkLocationName(e.target.value);
+                        if (loc) setBulkLocationAddress(loc.address);
+                      }}
+                      className="w-full bg-forest/5 border border-forest/10 p-3 rounded-xl font-sans text-sm outline-none focus:ring-2 focus:ring-forest/20"
+                    >
+                      <option value="">Select Host...</option>
+                      {addresses.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button 
+                  disabled={bulkActive}
+                  onClick={handleGenerateSchedule}
+                  className="w-full py-3 bg-forest text-parchment rounded-xl font-sans font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                  {bulkActive ? 'Generating...' : 'Generate Weekly Schedule'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Address Library Management */}
@@ -893,182 +913,199 @@ const AdminView = ({ gathering, addresses, appSettings, onShowToast, lessons }: 
       </div>
       
       {/* Resource Library Manager */}
-      <div className="space-y-6">
-        <h3 className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest/40 flex items-center gap-2">
-          <BookOpen size={12} /> Resource Library Manager
-        </h3>
-        <div className="bg-white border border-forest/10 p-8 rounded-[2rem] shadow-sm space-y-10">
-          {/* Library List */}
-          <div className="grid grid-cols-1 gap-3">
-            {lessons.map(lesson => (
-              <div key={lesson.id} className="flex items-center justify-between p-5 bg-forest/[0.02] border border-forest/10 rounded-3xl group hover:bg-white hover:border-forest/30 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-forest/5 flex items-center justify-center text-forest/20">
-                    <Book size={18} />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-serif font-medium text-lg text-forest">{lesson.title}</span>
-                    <span className="font-sans text-[10px] text-forest/40 uppercase tracking-widest">{lesson.date}</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    if (deletingLessonId === lesson.id) {
-                      deleteLesson(lesson.id);
-                      setDeletingLessonId(null);
-                      onShowToast('Lesson Removed');
-                    } else {
-                      setDeletingLessonId(lesson.id);
-                    }
-                  }}
-                  className={`p-2 transition-all rounded-xl flex items-center gap-2 ${
-                    deletingLessonId === lesson.id 
-                      ? "bg-red-600 text-white px-4 py-2 shadow-md animate-pulse" 
-                      : "text-red-400 hover:text-red-600 sm:opacity-0 group-hover:opacity-100 hover:bg-red-50"
-                  }`}
-                >
-                  {deletingLessonId === lesson.id ? (
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-widest whitespace-nowrap">CONFIRM?</span>
-                  ) : (
-                    <Trash2 size={16} />
-                  )}
-                </button>
-              </div>
-            ))}
-            {lessons.length === 0 && (
-              <div className="text-center py-12 px-6 border-2 border-dashed border-forest/10 rounded-[2rem]">
-                <p className="italic font-serif text-forest/30">Library is empty.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Bulk Import Section */}
-          <div className="pt-8 border-t border-forest/5 space-y-6">
-            <div className="flex flex-col gap-1">
-              <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest">Bulk Markdown Import</p>
-              <p className="font-serif italic text-xs text-forest/40 text-left">Paste your full study document here. We'll split it by ## Date headers.</p>
-            </div>
-            <textarea 
-              placeholder="## April 22&#10;### Title: Wisdom&#10;**Scripture:** Proverbs 1:1-7..."
-              value={bulkMarkdown}
-              onChange={(e) => setBulkMarkdown(e.target.value)}
-              rows={8}
-              className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-mono text-sm px-6 resize-none focus:ring-2 focus:ring-forest/20 outline-none transition-all"
-            />
-            <div className="flex gap-2">
-              <button 
-                onClick={handleParseBulk}
-                className="flex-1 py-3 bg-sage-100 text-forest border border-forest/10 rounded-xl font-sans text-[10px] font-bold uppercase tracking-widest hover:bg-sage-200 transition-all"
-              >
-                Process & Preview
-              </button>
-            </div>
-
-            <AnimatePresence>
-              {parsedLessons.length > 0 && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }} 
-                  animate={{ height: 'auto', opacity: 1 }} 
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-6 bg-forest/5 rounded-2xl border border-forest/10 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-forest">
-                        <Check size={16} />
-                        <p className="font-sans text-[10px] font-bold uppercase tracking-widest">Bulk Sync Preview</p>
-                      </div>
-                      <span className="bg-forest text-parchment px-3 py-1 rounded-full text-[10px] font-bold">{parsedLessons.length} Lessons Found</span>
-                    </div>
-                    
-                    <div className="max-h-32 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                      {parsedLessons.map((p, i) => (
-                        <div key={i} className="flex justify-between items-center text-[11px] font-serif italic text-forest/60 border-b border-forest/5 pb-1">
-                          <span>{p.title}</span>
-                          <span>{p.date}</span>
+      <div className="space-y-4">
+        <button 
+          onClick={() => setLibraryOpen(!libraryOpen)}
+          className="w-full flex items-center justify-between group"
+        >
+          <h3 className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest/40 flex items-center gap-2 group-hover:text-forest transition-colors">
+            <BookOpen size={12} /> Resource Library Manager
+          </h3>
+          <ChevronDown size={14} className={`text-forest/20 group-hover:text-forest transition-all ${libraryOpen ? 'rotate-180' : ''}`} />
+        </button>
+        <AnimatePresence>
+          {libraryOpen && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: 'auto', opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-white border border-forest/10 p-8 rounded-[2rem] shadow-sm space-y-10">
+                {/* Library List */}
+                <div className="grid grid-cols-1 gap-3">
+                  {lessons.map(lesson => (
+                    <div key={lesson.id} className="flex items-center justify-between p-5 bg-forest/[0.02] border border-forest/10 rounded-3xl group hover:bg-white hover:border-forest/30 transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-forest/5 flex items-center justify-center text-forest/20">
+                          <Book size={18} />
                         </div>
-                      ))}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-serif font-medium text-lg text-forest">{lesson.title}</span>
+                          <span className="font-sans text-[10px] text-forest/40 uppercase tracking-widest">{lesson.date}</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (deletingLessonId === lesson.id) {
+                            deleteLesson(lesson.id);
+                            setDeletingLessonId(null);
+                            onShowToast('Lesson Removed');
+                          } else {
+                            setDeletingLessonId(lesson.id);
+                          }
+                        }}
+                        className={`p-2 transition-all rounded-xl flex items-center gap-2 ${
+                          deletingLessonId === lesson.id 
+                            ? "bg-red-600 text-white px-4 py-2 shadow-md animate-pulse" 
+                            : "text-red-400 hover:text-red-600 sm:opacity-0 group-hover:opacity-100 hover:bg-red-50"
+                        }`}
+                      >
+                        {deletingLessonId === lesson.id ? (
+                          <span className="text-[10px] font-sans font-bold uppercase tracking-widest whitespace-nowrap">CONFIRM?</span>
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
                     </div>
+                  ))}
+                  {lessons.length === 0 && (
+                    <div className="text-center py-12 px-6 border-2 border-dashed border-forest/10 rounded-[2rem]">
+                      <p className="italic font-serif text-forest/30">Library is empty.</p>
+                    </div>
+                  )}
+                </div>
 
+                {/* Bulk Import Section */}
+                <div className="pt-8 border-t border-forest/5 space-y-6">
+                  <div className="flex flex-col gap-1">
+                    <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest">Bulk Markdown Import</p>
+                    <p className="font-serif italic text-xs text-forest/40 text-left">Paste your full study document here. We'll split it by ## Date headers.</p>
+                  </div>
+                  <textarea 
+                    placeholder="## April 22&#10;### Title: Wisdom&#10;**Scripture:** Proverbs 1:1-7..."
+                    value={bulkMarkdown}
+                    onChange={(e) => setBulkMarkdown(e.target.value)}
+                    rows={8}
+                    className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-mono text-sm px-6 resize-none focus:ring-2 focus:ring-forest/20 outline-none transition-all"
+                  />
+                  <div className="flex gap-2">
                     <button 
-                      onClick={handleSeedLibrary}
-                      disabled={isSeeding}
-                      className="w-full py-4 bg-forest text-parchment rounded-xl font-sans font-bold uppercase tracking-widest text-[11px] shadow-lg flex items-center justify-center gap-2"
+                      onClick={handleParseBulk}
+                      className="flex-1 py-3 bg-sage-100 text-forest border border-forest/10 rounded-xl font-sans text-[10px] font-bold uppercase tracking-widest hover:bg-sage-200 transition-all"
                     >
-                      {isSeeding ? <Loader2 className="animate-spin" size={14} /> : <BookOpen size={14} />}
-                      {isSeeding ? 'Seeding...' : 'Confirm & Seed Library'}
+                      Process & Preview
                     </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
 
-          {/* Individual Add Section */}
-          <div className="pt-8 border-t border-forest/5 space-y-6">
-            <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest">Manual Lesson Entry</p>
-            <div className="grid grid-cols-1 gap-4">
-              <input 
-                type="text" 
-                placeholder="Lesson Title"
-                value={newLessonTitle}
-                onChange={(e) => setNewLessonTitle(e.target.value)}
-                className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6"
-              />
-              <input 
-                type="text" 
-                placeholder="Subtitle / Summary"
-                value={newLessonSubtitle}
-                onChange={(e) => setNewLessonSubtitle(e.target.value)}
-                className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6"
-              />
-              <input 
-                type="date" 
-                value={newLessonDate}
-                onChange={(e) => setNewLessonDate(e.target.value)}
-                className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-sans text-sm px-6"
-              />
-              <textarea 
-                placeholder="Study Content (Markdown supported)"
-                value={newLessonContent}
-                onChange={(e) => setNewLessonContent(e.target.value)}
-                rows={4}
-                className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6 resize-none"
-              />
-              <textarea 
-                placeholder="Discussion Questions (One per line)"
-                value={newLessonQuestions}
-                onChange={(e) => setNewLessonQuestions(e.target.value)}
-                rows={3}
-                className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6 resize-none"
-              />
-            </div>
-            <button 
-              onClick={async () => {
-                if (!newLessonTitle || !newLessonDate || !newLessonContent) return;
-                setIsAddingLesson(true);
-                await createLesson({
-                  title: newLessonTitle,
-                  subtitle: newLessonSubtitle,
-                  date: newLessonDate,
-                  content: newLessonContent,
-                  questions: newLessonQuestions.split('\n').filter(q => q.trim())
-                });
-                setNewLessonTitle('');
-                setNewLessonSubtitle('');
-                setNewLessonDate('');
-                setNewLessonContent('');
-                setNewLessonQuestions('');
-                setIsAddingLesson(false);
-                onShowToast('Study Guide Added');
-              }}
-              disabled={isAddingLesson || !newLessonTitle || !newLessonDate || !newLessonContent}
-              className="w-full py-4 bg-forest text-parchment rounded-xl font-sans font-bold uppercase tracking-widest text-[11px] shadow-lg disabled:opacity-50"
-            >
-              {isAddingLesson ? 'Creating...' : 'Deploy Study Guide'}
-            </button>
-          </div>
-        </div>
+                  <AnimatePresence>
+                    {parsedLessons.length > 0 && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: 'auto', opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-6 bg-forest/5 rounded-2xl border border-forest/10 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-forest">
+                              <Check size={16} />
+                              <p className="font-sans text-[10px] font-bold uppercase tracking-widest">Bulk Sync Preview</p>
+                            </div>
+                            <span className="bg-forest text-parchment px-3 py-1 rounded-full text-[10px] font-bold">{parsedLessons.length} Lessons Found</span>
+                          </div>
+                          
+                          <div className="max-h-32 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                            {parsedLessons.map((p, i) => (
+                              <div key={i} className="flex justify-between items-center text-[11px] font-serif italic text-forest/60 border-b border-forest/5 pb-1">
+                                <span>{p.title}</span>
+                                <span>{p.date}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <button 
+                            onClick={handleSeedLibrary}
+                            disabled={isSeeding}
+                            className="w-full py-4 bg-forest text-parchment rounded-xl font-sans font-bold uppercase tracking-widest text-[11px] shadow-lg flex items-center justify-center gap-2"
+                          >
+                            {isSeeding ? <Loader2 className="animate-spin" size={14} /> : <BookOpen size={14} />}
+                            {isSeeding ? 'Seeding...' : 'Confirm & Seed Library'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Individual Add Section */}
+                <div className="pt-8 border-t border-forest/5 space-y-6">
+                  <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest">Manual Lesson Entry</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="Lesson Title"
+                      value={newLessonTitle}
+                      onChange={(e) => setNewLessonTitle(e.target.value)}
+                      className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Subtitle / Summary"
+                      value={newLessonSubtitle}
+                      onChange={(e) => setNewLessonSubtitle(e.target.value)}
+                      className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6"
+                    />
+                    <input 
+                      type="date" 
+                      value={newLessonDate}
+                      onChange={(e) => setNewLessonDate(e.target.value)}
+                      className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-sans text-sm px-6"
+                    />
+                    <textarea 
+                      placeholder="Study Content (Markdown supported)"
+                      value={newLessonContent}
+                      onChange={(e) => setNewLessonContent(e.target.value)}
+                      rows={4}
+                      className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6 resize-none"
+                    />
+                    <textarea 
+                      placeholder="Discussion Questions (One per line)"
+                      value={newLessonQuestions}
+                      onChange={(e) => setNewLessonQuestions(e.target.value)}
+                      rows={3}
+                      className="w-full bg-forest/5 border border-forest/10 p-4 rounded-xl font-serif text-sm px-6 resize-none"
+                    />
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if (!newLessonTitle || !newLessonDate || !newLessonContent) return;
+                      setIsAddingLesson(true);
+                      await createLesson({
+                        title: newLessonTitle,
+                        subtitle: newLessonSubtitle,
+                        date: newLessonDate,
+                        content: newLessonContent,
+                        questions: newLessonQuestions.split('\n').filter(q => q.trim())
+                      });
+                      setNewLessonTitle('');
+                      setNewLessonSubtitle('');
+                      setNewLessonDate('');
+                      setNewLessonContent('');
+                      setNewLessonQuestions('');
+                      setIsAddingLesson(false);
+                      onShowToast('Study Guide Added');
+                    }}
+                    disabled={isAddingLesson || !newLessonTitle || !newLessonDate || !newLessonContent}
+                    className="w-full py-4 bg-forest text-parchment rounded-xl font-sans font-bold uppercase tracking-widest text-[11px] shadow-lg disabled:opacity-50"
+                  >
+                    {isAddingLesson ? 'Creating...' : 'Deploy Study Guide'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       
       {/* Global Settings Hub */}
@@ -1176,7 +1213,7 @@ const AdminView = ({ gathering, addresses, appSettings, onShowToast, lessons }: 
       {/* List */}
       <div className="space-y-6 pb-12">
         <h3 className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest/40">Scheduled Meetings</h3>
-        <div className="space-y-3">
+        <div className="max-h-[400px] overflow-y-auto custom-scrollbar border border-forest/10 p-4 rounded-3xl bg-forest/[0.01] shadow-inner space-y-3">
           {upcoming.map((g) => (
             <div key={g.id} className="bg-white border border-forest/5 p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div>
@@ -1251,15 +1288,20 @@ function formatRelativeTime(date: any) {
 const LoungeView = ({ 
   messages, 
   onSendMessage, 
+  onDeleteMessage,
   user, 
-  activeLesson 
+  activeLesson,
+  onSignIn
 }: { 
   messages: LoungeMessage[]; 
   onSendMessage: (text: string) => void; 
+  onDeleteMessage: (id: string) => void;
   user: AppUser | null; 
-  activeLesson: Lesson | null 
+  activeLesson: Lesson | null;
+  onSignIn: () => void;
 }) => {
   const [inputText, setInputText] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1267,6 +1309,52 @@ const LoungeView = ({
     onSendMessage(inputText.trim());
     setInputText('');
   };
+
+  if (!user) {
+    return (
+      <div id="lounge-view" className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Header */}
+        <header className="flex flex-col gap-2">
+          <h1 className="text-4xl font-serif font-medium text-forest tracking-tight">The Lounge</h1>
+          <p className="font-serif italic text-forest/40">Mid-week encouragement and community connection.</p>
+        </header>
+
+        {/* Featured Takeaway - Keep visible for inspiration even if signed out? 
+            User said "Lockdown... if a user is signed out, they should see the 'Sign in...' screen instead of the message list."
+            I'll show the takeaway + the sign in screen.
+        */}
+        {activeLesson && (
+          <div className="bg-[#1B263B] text-parchment p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden group opacity-60 grayscale-[0.5]">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+              <BookOpen size={80} />
+            </div>
+            <div className="relative z-10 space-y-5 text-center">
+              <p className="font-sans text-[10px] font-bold uppercase tracking-[0.3em] text-sage-300">This Week's Takeaway</p>
+              <h2 className="text-2xl font-serif leading-tight italic">
+                {activeLesson.subtitle.split(' – ')[1] || activeLesson.title}
+              </h2>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white/50 border border-forest/5 p-12 rounded-[4rem] text-center space-y-6 shadow-sm">
+          <div className="w-20 h-20 bg-forest/5 rounded-[2rem] flex items-center justify-center mx-auto mb-4 border border-forest/10">
+            <MessageCircle size={32} className="text-forest/20" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-serif text-forest">Community Connection</h2>
+            <p className="font-serif italic text-forest/40 px-8 leading-relaxed">Sign in to join the mid-week conversation and share encouragement with the group.</p>
+          </div>
+          <button
+            onClick={onSignIn}
+            className="px-10 py-4 bg-forest text-parchment rounded-2xl font-sans text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-forest/90 transition-all"
+          >
+            Sign in to join the conversation
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="lounge-view" className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -1315,19 +1403,54 @@ const LoungeView = ({
                 key={msg.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex gap-4"
+                className="flex gap-4 group/msg"
               >
                 <img 
                   src={msg.authorPhotoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.authorName)}&background=random`} 
                   alt={msg.authorName}
                   className="w-10 h-10 rounded-2xl border-2 border-white shadow-sm object-cover flex-shrink-0"
                 />
-                <div className="space-y-1 pt-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-sans text-[11px] font-bold text-forest">{msg.authorName}</span>
-                    <span className="font-serif italic text-[10px] text-forest/30">{formatRelativeTime(msg.createdAt)}</span>
+                <div className="space-y-1 pt-1 flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-sans text-[11px] font-bold text-forest">{msg.authorName}</span>
+                      <span className="font-serif italic text-[10px] text-forest/30">{formatRelativeTime(msg.createdAt)}</span>
+                    </div>
+                    
+                    {/* Delete Icon / Confirmation */}
+                    {(user?.isAdmin || user?.uid === msg.authorUid) && (
+                      <div className="relative">
+                        {deletingId === msg.id ? (
+                          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                            <span className="font-serif italic text-[9px] text-forest/40 uppercase tracking-tighter">Delete?</span>
+                            <button 
+                              onClick={() => {
+                                onDeleteMessage(msg.id);
+                                setDeletingId(null);
+                              }}
+                              className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Check size={12} strokeWidth={3} />
+                            </button>
+                            <button 
+                              onClick={() => setDeletingId(null)}
+                              className="p-1 text-forest/30 hover:bg-forest/5 rounded-lg transition-colors"
+                            >
+                              <X size={12} strokeWidth={3} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setDeletingId(msg.id)}
+                            className="opacity-0 group-hover/msg:opacity-100 md:opacity-20 hover:opacity-100 p-1 text-forest/40 hover:text-red-500 transition-all"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-forest/5 shadow-sm text-sm font-serif text-forest/80 leading-relaxed">
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-forest/5 shadow-sm text-sm font-serif text-forest/80 leading-relaxed break-words">
                     {msg.text}
                   </div>
                 </div>
@@ -1341,7 +1464,7 @@ const LoungeView = ({
           )}
         </div>
 
-        {/* Input Field */}
+        {/* Auth Guarded Input Area */}
         <div className="p-6 bg-white border-t border-forest/10">
           {user ? (
             <form onSubmit={handleSubmit} className="relative">
@@ -1361,8 +1484,14 @@ const LoungeView = ({
               </button>
             </form>
           ) : (
-            <div className="text-center py-2">
-              <p className="font-serif italic text-xs text-forest/40">Please sign in to share a note.</p>
+            <div className="text-center py-4 space-y-3">
+              <p className="font-serif italic text-sm text-forest/40">You must be signed in to join the conversation.</p>
+              <button 
+                onClick={onSignIn}
+                className="px-8 py-3 bg-forest text-parchment rounded-xl font-sans text-[10px] font-bold uppercase tracking-widest shadow-lg hover:bg-forest/90 transition-all"
+              >
+                Sign in to join the conversation
+              </button>
             </div>
           )}
         </div>
@@ -1428,6 +1557,11 @@ const ViewContainer = ({ activeTab, gathering, addresses, appSettings, lessons, 
     showToast('Encouragement Shared!');
   };
 
+  const handleDeleteMessage = async (id: string) => {
+    await deleteLoungeMessage(id);
+    showToast('Message Deleted');
+  };
+
   useEffect(() => {
     if (activeTab === 'gathering' && gathering) {
       setGatheringItems([]); // Strict reset to prevent old theme data
@@ -1467,7 +1601,7 @@ const ViewContainer = ({ activeTab, gathering, addresses, appSettings, lessons, 
         <div className="px-6 space-y-12">
           <header className="space-y-4 flex flex-col items-center text-center">
             <div className="flex flex-col gap-2 items-center">
-              <h1 className="text-5xl font-serif font-medium leading-none tracking-tight text-forest">Sun River Church</h1>
+              <h1 className="text-5xl font-serif font-medium leading-none tracking-tight text-forest">Sun River Church Gathering</h1>
               <p className="font-sans text-[10px] font-bold uppercase tracking-[0.3em] text-sage-600 max-w-[280px]">
                 Spring Session – The Discipline of Discernment
               </p>
@@ -1497,48 +1631,59 @@ const ViewContainer = ({ activeTab, gathering, addresses, appSettings, lessons, 
 
               {gathering && (
                 <div className="flex flex-col gap-6 pt-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
-                    <div className="flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-forest/70 bg-forest/5 px-5 py-3 rounded-2xl w-full sm:w-auto">
+                  <div className="flex flex-col gap-3">
+                    <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-forest/40 flex items-center gap-2">
+                      <MapPin size={12} /> Gathering Location
+                    </p>
+                    
+                    {user ? (
+                      <div className="flex flex-col gap-4 text-left p-6 bg-forest/[0.02] border border-forest/10 rounded-3xl animate-in fade-in zoom-in-95 duration-500">
+                        <div className="space-y-1">
+                          <p className="font-serif font-medium text-2xl text-forest">{gathering.location || 'Meeting Point'}</p>
+                          <p className="font-sans text-xs text-forest/40">{gathering.address || 'Address coming soon'}</p>
+                        </div>
+                        
+                        {gathering.address && (
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gathering.address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-center justify-between p-3 bg-forest/5 border border-forest/5 rounded-xl hover:border-forest/20 hover:bg-white transition-all shadow-sm w-fit min-w-[140px]"
+                          >
+                            <div className="flex items-center gap-2">
+                              <MapPin size={12} className="text-forest/30" />
+                              <p className="font-sans text-[9px] font-bold uppercase tracking-widest text-forest/60">Open in Maps</p>
+                            </div>
+                            <ExternalLink size={10} className="text-forest/20 group-hover:text-forest transition-colors ml-4" />
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 p-8 border border-dashed border-forest/10 rounded-3xl bg-forest/[0.01]">
+                        <p className="font-serif italic text-xs text-forest/40">Sign in to see this week's location.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                    <div className="flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-forest/70 bg-forest/[0.03] border border-forest/10 px-6 py-4 rounded-full flex-1">
                       <Calendar size={16} className="text-forest/30" />
-                      {new Date(gathering.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      {new Date(gathering.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                     </div>
-                    <div className="flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-forest/70 bg-forest/5 px-5 py-3 rounded-2xl w-full sm:w-auto">
-                      <LogIn size={16} className="text-forest/30" />
+                    <div className="hidden md:block w-px h-6 bg-forest/10" />
+                    <div className="flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-forest/70 bg-forest/[0.03] border border-forest/10 px-6 py-4 rounded-full flex-1">
+                      <Sun size={16} className="text-forest/30" />
                       {new Date(gathering.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </div>
                   </div>
 
                   <button 
                     onClick={() => window.dispatchEvent(new CustomEvent('changeTab', { detail: 'gathering' }))}
-                    className="flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-forest/70 bg-forest/5 px-5 py-4 rounded-2xl w-full hover:bg-forest/10 transition-all border border-forest/5"
+                    className="flex items-center justify-center gap-3 font-sans text-[11px] font-bold uppercase tracking-widest bg-forest text-parchment px-5 py-5 rounded-2xl w-full hover:bg-forest/90 transition-all shadow-lg"
                   >
-                    <Utensils size={16} className="text-forest/30" />
+                    <Utensils size={16} />
                     View Gathering Table
                   </button>
-
-                  {gathering.address && (
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gathering.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex flex-col gap-2 p-6 bg-forest/[0.02] border border-forest/10 rounded-3xl hover:border-forest/30 hover:bg-white transition-all shadow-sm text-left"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-forest/40">
-                          <MapPin size={16} />
-                          <p className="font-sans text-[10px] font-bold uppercase tracking-widest">Navigation</p>
-                        </div>
-                        <ExternalLink size={14} className="text-forest/20 group-hover:text-forest transition-colors" />
-                      </div>
-                      <div className="flex flex-col">
-                        <p className="font-serif font-medium text-xl text-forest group-hover:text-forest transition-colors">{gathering.location || 'Meeting Point'}</p>
-                        <div className="flex items-center gap-1">
-                          <MapPin size={10} className="text-forest/20" />
-                          <p className="font-sans text-xs text-forest/40">{gathering.address}</p>
-                        </div>
-                      </div>
-                    </a>
-                  )}
                 </div>
               )}
             </div>
@@ -1713,7 +1858,7 @@ const ViewContainer = ({ activeTab, gathering, addresses, appSettings, lessons, 
   ),
     study: <StudyView lessons={lessons} />,
     admin: <AdminView gathering={gathering} addresses={addresses} appSettings={appSettings} onShowToast={showToast} lessons={lessons} />,
-    connect: <LoungeView messages={loungeMessages} onSendMessage={handleSendMessage} user={user} activeLesson={activeLesson} />,
+    connect: <LoungeView messages={loungeMessages} onSendMessage={handleSendMessage} onDeleteMessage={handleDeleteMessage} user={user} activeLesson={activeLesson} onSignIn={signInWithGoogle} />,
   };
 
   return (
@@ -1792,7 +1937,7 @@ function MainLayout() {
       {/* Top Header */}
       <header className="p-4 flex justify-between items-center bg-parchment/80 backdrop-blur-md sticky top-0 z-50 border-b border-forest/5">
         <div className="flex items-center gap-2">
-          <span className="font-serif italic font-bold tracking-tight text-forest/80">Sun River Church</span>
+          <span className="font-serif italic font-bold tracking-tight text-forest/80">Sun River Church Gathering</span>
         </div>
         <div>
           {user ? (
@@ -1871,7 +2016,7 @@ function MainLayout() {
         <NavItem id="study" active={activeTab === 'study'} onClick={setActiveTab} icon={BookOpen} label="Study" />
         <NavItem id="connect" active={activeTab === 'connect'} onClick={setActiveTab} icon={Users} label="Lounge" />
         {user?.isAdmin && (
-          <NavItem id="admin" active={activeTab === 'admin'} onClick={setActiveTab} icon={Settings} label="Admin" />
+          <NavItem id="admin" active={activeTab === 'admin'} onClick={setActiveTab} icon={Settings} label="Gathering Manager" />
         )}
       </nav>
     </div>

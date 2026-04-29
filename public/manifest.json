@@ -1,0 +1,22 @@
+{
+  "name": "Sun River Church Gathering",
+  "short_name": "Gathering",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1B263B",
+  "background_color": "#F5F5DC",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
